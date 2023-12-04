@@ -1,4 +1,4 @@
-const tdl = require('tdl')
+const tdl = require('@telepilotco/tdl')
 
 const API_ID = 2222 // Your api_id
 const API_HASH = '0123456789abcdef0123456789abcdef' // Your api_hash

@@ -1,0 +1,184 @@
+name: Publish tdl - telepilotco
+# This workflow can be executed using a command like this:
+# gh workflow run publish-tdl.yml --ref develop -f npm-tag=latest
+on:
+  workflow_dispatch:
+    inputs:
+      npm-tag:
+        description: 'npm tag (e.g. latest, beta), required to publish'
+        type: string
+        required: false
+      npm_registry:
+        description: 'Custom NPM_REGISTRY'
+        required: false
+
+jobs:
+  build-and-test-in-docker:
+    name: linux-${{ matrix.platform }}-${{ matrix.libc }} - build the node addon in docker
+    runs-on: [ ubuntu-20.04 ]
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - x64
+          - arm64
+        libc:
+          - glibc
+          - musl
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: npm
+      - name: Clean old binaries
+        run: npm run clean -w @telepilotco/tdl
+      - run: docker run --privileged --rm tonistiigi/binfmt --install arm64
+        if: matrix.platform == 'arm64'
+      - name: Prebuildify in docker linux-${{ matrix.platform }}-${{ matrix.libc }}
+        run: |
+          cat > prebuilt-node-addon-${{ matrix.platform }}-${{ matrix.libc }}.sh <<EOF
+          if [ -x "$(command -v apt-get)" ]; then
+            export TZ=Europe/Berlin
+            ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+            apt-get update
+            apt-get install -y -q \
+              python3 make cmake gcc g++ git
+          else
+            apk update
+            apk --no-cache add \
+              python3 make cmake gcc g++ git
+          fi
+          gcc --version
+          ldd --version
+          npm install -g pnpm
+          cd /app
+          cd packages/tdl && pnpm install
+          npm run make-prebuild -- --tag-libc && cd ../..
+          ldd packages/tdl/prebuilds/linux-${{ matrix.platform }}/node.napi.${{ matrix.libc }}.node
+          du -hs packages/tdl/prebuilds/linux-${{ matrix.platform }}/node.napi.${{ matrix.libc }}.node
+          EOF
+          docker run ${{ matrix.platform == 'arm64' && '--platform linux/arm64' || '' }} \
+            -v $(pwd):/app node:18-${{ matrix.libc == 'musl' && 'alpine' || 'slim' }} \
+            sh /app/prebuilt-node-addon-${{ matrix.platform }}-${{ matrix.libc }}.sh
+      - name: Run tests in docker linux-${{ matrix.platform }}-${{ matrix.libc }}
+        if: false
+        #only x64-libc build is backward compatible with tdl-tdlib-addon
+        run: |
+          cat > test.sh <<EOF
+          if [ -x "$(command -v apt-get)" ]; then
+            apt-get update
+            apt install libatomic1 -y -q
+          else
+            apk update
+            apk --no-cache add libatomic
+          fi
+          cd /app
+          npm pack @telepilotco/tdlib-binaries-prebuilt@1.8.14
+          tar -xzvf telepilotco-tdlib-binaries-prebuilt-1.8.14.tgz
+          cd package && npm install && cd ..
+          if ! [ -f "/etc/alpine-release" ]; then
+            npm run flow-check
+          fi
+          LIBTDJSON_PATH=package/prebuilds/libtdjson.so npm run test
+          LIBTDJSON_PATH=package/prebuilds/libtdjson.so npm run integration-tests
+          if [ "${{ matrix.platform }}-${{ matrix.libc }}" = "x64-libc" ]; then
+            LIBTDJSON_PATH=package/prebuilds/libtdjson.so npm run integration-tests-tdl-tdlib-addon
+          fi
+          EOF
+          docker run ${{ matrix.platform == 'arm64' && '--platform linux/arm64' || '' }} \
+          -v $(pwd):/app node:18-${{ matrix.libc == 'musl' && 'alpine' || 'slim' }} \
+          sh /app/test.sh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: tdl-prebuilds
+          path: packages/tdl/prebuilds
+
+  build-and-test:
+    name: Build the node addon on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Clean old binaries
+        run: npm run clean -w @telepilotco/tdl
+      - name: Prebuildify
+        run: npm run make-prebuild -w @telepilotco/tdl
+      - name: "Prebuildify: Crosscompile to arm64 Apple Silicon"
+        if: runner.os == 'macOS'
+        run: npm run make-prebuild -w @telepilotco/tdl -- --arch arm64
+      - name: Download tdlib-binaries-prebuilt
+        if: runner.os == 'macOs'
+        run: |
+          npm pack @telepilotco/tdlib-binaries-prebuilt@1.8.14
+          tar -xzvf telepilotco-tdlib-binaries-prebuilt-1.8.14.tgz
+          cd package && npm install
+      - name: Download prebuilt-tdlib Windows
+        if: runner.os == 'Windows'
+        run: |
+          npm pack prebuilt-tdlib@0.1008000.1
+          tar -xzvf prebuilt-tdlib-0.1008000.1.tgz
+          rm package/package.json
+      - name: Run tests
+        if: runner.os == 'macOs'
+        run: npm run test:all
+        env:
+          LIBTDJSON_PATH: package/prebuilds/libtdjson.dylib
+      - name: Run tests
+        if: runner.os == 'Windows'
+        run: | #these builds are backward compatible with tdl-tdlib-addon
+          npm run test:all
+        env:
+          USE_PREBUILT: package/index.js
+      - uses: actions/upload-artifact@v3
+        with:
+          name: tdl-prebuilds
+          path: packages/tdl/prebuilds
+
+  publish:
+    name: 'Publish to npm'
+    needs: [build-and-test, build-and-test-in-docker]
+    runs-on: ubuntu-latest
+    env:
+      NPM_REGISTRY: ${{ github.event.inputs.npm_registry || 'https://registry.npmjs.org' }}
+      CUSTOM_REGISTRY_AUTH: ${{ secrets.CUSTOM_REGISTRY_AUTH }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+          cache: npm
+          # registry-url is mandatory here
+          registry-url: 'https://registry.npmjs.org'
+      - name: Set npm configuration
+        run: |
+          if [ -n "$NPM_REGISTRY" ]; then
+          npm config set registry $NPM_REGISTRY
+          echo $CUSTOM_REGISTRY_AUTH >> ~/.npmrc
+          npm config set strict-ssl false
+          fi
+      - name: Install dependencies
+        run: npm install
+      - uses: actions/download-artifact@v3
+        with:
+          name: tdl-prebuilds
+          path: packages/tdl/prebuilds
+      - run: tree packages/tdl/prebuilds
+      - name: Ensure prebuilts exist
+        run: (( $(ls packages/tdl/prebuilds | wc -l) > 0 ))
+      - name: Tests (excluding integration tests)
+        run: npm test
+      - name: Publish
+        if: "${{ inputs.npm-tag != '' }}"
+        run: npm publish --tag ${{ inputs.npm-tag }} -w @telepilotco/tdl --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

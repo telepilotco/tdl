@@ -1,7 +1,7 @@
 // Simple deno example. Requires --allow-read --allow-env --allow-ffi.
 // WARNING: May be unstable.
 
-import * as tdl from 'npm:tdl@7'
+import * as tdl from 'npm:@telepilotco/tdl@7'
 // Also use prebuilt TDLib:
 import { getTdjson } from 'npm:prebuilt-tdlib@td-1.8.19'
 

@@ -1,4 +1,4 @@
-const tdl = require('tdl')
+const tdl = require('@telepilotco/tdl')
 const { getTdjson } = require('prebuilt-tdlib')
 
 tdl.configure({ tdjson: getTdjson() })
