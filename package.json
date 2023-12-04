@@ -4,15 +4,17 @@
   "private": true,
   "description": "A JavaScript wrapper for TDLib",
   "scripts": {
-    "clean": "rimraf --glob packages/*/dist/ && npm run clean -w tdl",
+    "clean": "rimraf --glob packages/*/dist/ && npm run clean -w @telepilotco/tdl",
     "clean-modules": "rm -rf node_modules/ && rm -rf packages/node_modules/",
     "clean-all": "npm run clean && npm run clean-modules",
     "build": "npm run build -ws",
     "lint": "eslint . --max-warnings 0",
     "jest-tests": "jest --testPathIgnorePatterns tests/integration",
-    "test": "npm run flow:check && npm run ts:check && npm run lint && npm run jest-tests",
-    "integration-tests": "jest tests/integration && cross-env TEST_TDL_TDLIB_ADDON=1 jest tests/integration && cross-env TEST_NEW_TDJSON=1 jest tests/integration",
-    "test:all": "npm run test && npm run integration-tests",
+    "flow-check": "npm run flow:check",
+    "test": "npm run ts:check && npm run lint && npm run jest-tests",
+    "integration-tests": "jest tests/integration && cross-env TEST_NEW_TDJSON=1 jest tests/integration",
+    "integration-tests-tdl-tdlib-addon": "cross-env TEST_TDL_TDLIB_ADDON=1 jest tests/integration",
+    "test:all": "npm run test && npm run integration-tests && npm run integration-tests-tdl-tdlib-addon",
     "coverage": "jest --coverage",
     "prepare": "npm run clean && npm run build",
     "prepack": "npm test",
@@ -45,17 +47,20 @@
     "tdl-tdlib-addon": "^1.2.2",
     "typescript": "^5.2.2"
   },
-  "author": "Bannerets <comonoid@protonmail.com>",
+  "author": {
+    "name": "TelePilot",
+    "email": "contact@telepilot.co"
+  },
   "license": "MIT",
   "directories": {
     "example": "examples"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Bannerets/tdl.git"
+    "url": "git+https://github.com/telepilotco/tdl.git"
   },
   "bugs": {
-    "url": "https://github.com/Bannerets/tdl/issues"
+    "url": "https://github.com/telepilotco/tdl/issues"
   },
-  "homepage": "https://github.com/Bannerets/tdl#readme"
+  "homepage": "https://github.com/telepilotco/tdl#readme"
 }

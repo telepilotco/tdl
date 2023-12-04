@@ -1,4 +1,18 @@
-# tdl &nbsp; [![npm](https://img.shields.io/npm/v/tdl.svg)](https://www.npmjs.com/package/tdl) [![CI](https://github.com/Bannerets/tdl/actions/workflows/ci.yml/badge.svg)](https://github.com/Bannerets/tdl/actions/workflows/ci.yml)
+# @telepilotco/tdl
+
+This fork of `bannerets/tdl` does not change source code,
+but modifies Github Actions build pipeline to extent environments that are supported.
+
+Following environments are supported:
+- linux-x64-glibc
+- linux-x64-musl
+- linux-arm64-glibc
+- linux-arm64-musl
+- win-x64
+- darwin-x64
+- darwin-arm64
+
+# tdl 
 
 `tdl` is a fairly simple JavaScript wrapper for [TDLib][] (Telegram Database library),
 a library to create [Telegram][] clients or bots.

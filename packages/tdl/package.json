@@ -1,5 +1,5 @@
 {
-  "name": "tdl",
+  "name": "@telepilotco/tdl",
   "version": "7.4.1",
   "description": "Node.js bindings to TDLib (Telegram Database library)",
   "main": "index.js",
@@ -32,9 +32,13 @@
     "node-gyp-build": "^4.6.0"
   },
   "devDependencies": {
-    "node-gyp": "^10.0.1"
+    "node-gyp": "^10.0.1",
+    "prebuildify": "^5.0.1"
   },
-  "author": "Bannerets <comonoid@protonmail.com> (https://github.com/Bannerets)",
+  "author": {
+    "name": "TelePilot",
+    "email": "contact@telepilot.co"
+  },
   "license": "MIT",
   "keywords": [
     "telegram",
@@ -47,10 +51,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Bannerets/tdl.git"
+    "url": "git+https://github.com/telepilotco/tdl.git"
   },
   "bugs": {
-    "url": "https://github.com/Bannerets/tdl/issues"
+    "url": "https://github.com/telepilotco/tdl/issues"
   },
-  "homepage": "https://github.com/Bannerets/tdl#readme"
+  "homepage": "https://github.com/telepilotco/tdl#readme"
 }

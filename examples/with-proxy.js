@@ -1,4 +1,4 @@
-const tdl = require('tdl')
+const tdl = require('@telepilotco/tdl')
 
 const client = tdl.createClient({
   apiId: 2222, // Your api_id

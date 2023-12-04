@@ -1,4 +1,4 @@
-import * as tdl from 'tdl'
+import * as tdl from '@telepilotco/tdl'
 // import TDLib types:
 // import * as Td from 'tdlib-types'
 

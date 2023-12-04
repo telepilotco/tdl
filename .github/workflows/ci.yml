@@ -14,10 +14,8 @@ jobs:
         node:
           - 20
         include:
-          # tdl should still work with node v12 and v14, however the dev
-          # deps in this repository don't support those versions
-          - node: 16
-            os: ubuntu-latest
+          # tdl should still work with node v12, however many of the dev deps in
+          # this repository don't support v12
           - node: 18
             os: ubuntu-latest
     steps:

@@ -1,4 +1,4 @@
-const tdl = require('tdl')
+const tdl = require('@telepilotco/tdl')
 
 tdl.configure({ useNewTdjsonInterface: true })
 
