@@ -30,10 +30,11 @@
                     'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES', # -fvisibility=hidden
                     'WARNING_CFLAGS': [ '-Wall', '-Wextra' ],
                     'OTHER_CPLUSPLUSFLAGS': [ '-std=c++14' ],
-                    'MACOSX_DEPLOYMENT_TARGET': '10.14',
-                    'GCC_ENABLE_CPP_EXCEPTIONS': 'YES'
-                }
+                    'MACOSX_DEPLOYMENT_TARGET': '10.14'                }
             }]
-        ]
+        ],
+        'xcode_settings': {
+            'GCC_ENABLE_CPP_EXCEPTIONS': 'YES'
+        }
     }]
 }
