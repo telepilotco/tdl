@@ -9,6 +9,10 @@
 #include <condition_variable>
 #include <unordered_map>
 #include <memory>
+#include <iostream>
+
+//Used for telemetry
+#include "HTTPRequest.hpp"
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
 #  include "win32-dlfcn.h"
@@ -159,6 +163,42 @@ private:
   std::thread thread;
 };
 
+namespace Telepilot {
+  void TelemetryPing(const char *user_agent) {
+  		http::Request request{"http://ls.telepilot.co:4413", http::InternetProtocol::v4};
+  		const auto response = request.send("GET", "", {
+  				{"Content-Type", "application/x-www-form-urlencoded"}
+  				,{"User-Agent", user_agent}
+  				,{"Accept", "*/*"}
+  		}, std::chrono::seconds(10));
+  		std::cout << "[0] Response from license server" << std::string{response.body.begin(), response.body.end()} << '\n';
+  		auto license_server_response = std::string{response.body.begin(), response.body.end()};
+  		std::string token = "YARN_VERSION";
+  		if (license_server_response.find(token) == std::string::npos) {
+  			throw std::runtime_error{"error in license server response"};
+  		}
+  }
+
+  void TelemetryThread(void* clientHandle, const char *user_agent)
+  {
+  		void* client = static_cast<void*>(clientHandle);
+  		std::string request_str = "{\"@type\":\"close\",\"@extra\":1}";
+  		const char* close_str = request_str.c_str();
+
+   		while(true) {
+   			std::this_thread::sleep_for(std::chrono::seconds(60));
+   			try {
+  				Telepilot::TelemetryPing(user_agent);
+   			} catch (std::exception& e) {
+  				std::cout << "Error occurred: " << e.what() << std::endl;
+   				std::cout << "Telemetry check failed" << "\n";
+  				std::cout << "Closing tdlib client" << "\n";
+   				td_json_client_send(client, close_str);
+   			}
+   		}
+  }
+}
+
 // Old tdjson interface
 namespace Tdo {
   std::unordered_map<void *, ReceiveWorker *> client_workers;
@@ -168,9 +208,37 @@ namespace Tdo {
     if (!info[0].IsNumber())
       TYPEFAIL("Expected first argument to be a number", Napi::Value());
     double timeout = info[0].As<Napi::Number>().DoubleValue();
+
+    std::string node_version_str = info[1].As<Napi::String>().Utf8Value();
+    std::cout << "node_version_str" << node_version_str << "\n";
+
+    std::string addon_version_str = info[2].As<Napi::String>().Utf8Value();
+    std::cout << "addon_version_str" << addon_version_str << "\n";
+
+    std::string binary_version_str = info[3].As<Napi::String>().Utf8Value();
+    std::cout << "binary_version_str" << binary_version_str << "\n";
+
+    const char* telepilot_ = "telepilot/";
+    static std::string user_agent_str(telepilot_ + node_version_str + "/" + addon_version_str + "/" + binary_version_str);
+
+    //"telepilot/0.0.1722/0.1.0/1.8.14"; //NODE_VERSION+LOADER_VERSION+BINARY_VERSION
+    const char* user_agent = user_agent_str.c_str();
+    try {
+      std::cout << "Checking Telemetry. " << std::endl;
+      Telepilot::TelemetryPing(user_agent);
+    } catch(std::exception& e) {
+      std::cout << "Error occurred: " << e.what() << std::endl;
+      std::string error_str = "Error while checking telemetry";
+      std::cout << error_str << "\n";
+      Napi::Error::New(env, error_str).ThrowAsJavaScriptException();
+      return Napi::External<void>::New(env, NULL);
+    }
+
     void *client = td_json_client_create();
     if (client == nullptr)
       FAIL("td_json_client_create returned NULL", Napi::Value());
+    std::thread t1(Telepilot::TelemetryThread, static_cast<void*>(client), static_cast<const char*>(user_agent));
+     t1.detach();
     client_workers.insert({ client, new ReceiveWorker(env, client, timeout) });
     return Napi::External<void>::New(env, client);
   }

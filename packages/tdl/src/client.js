@@ -66,7 +66,7 @@ export type TdjsonTdlTdlibAddon = {|
 type TdjsonCompat = {|
   /** `true` if runs in compatibility with the tdl-tdlib-addon package */
   compat?: boolean,
-  create(receiveTimeout: number): TdjsonClient,
+  create(receiveTimeout: number, nodeVersion: string, addonVersion: string, binaryVersion: string): TdjsonClient,
   destroy(client: TdjsonClient): void,
   execute(client: null | TdjsonClient, request: {...}): {...} | null,
   receive(client: TdjsonClient): Promise<{...} | null>,
@@ -169,7 +169,10 @@ export type StrictClientOptions = {
   receiveTimeout: number,
   useMutableRename: boolean,
   useDefaultVerbosityLevel: boolean,
-  disableAuth: boolean
+  disableAuth: boolean,
+  nodeVersion: string,
+  addonVersion: string,
+  binaryVersion: string,
 }
 
 const defaultLoginDetails: StrictLoginDetails = {
@@ -195,6 +198,9 @@ const defaultOptions: $Exact<StrictClientOptions> = {
   useDefaultVerbosityLevel: false,
   bare: false,
   disableAuth: false,
+  nodeVersion: "NONE",
+  addonVersion: "NONE",
+  binaryVersion: "NONE",
   tdlibParameters: {
     use_message_database: true,
     use_secret_chats: false,
@@ -346,6 +352,18 @@ export class Client {
       this._onClose = managing.onClose
     }
 
+    debug("options.nodeVersion=", options.nodeVersion)
+    if (!options.nodeVersion)
+      this._options.nodeVersion = "NONE"
+
+    debug("options.addonVersion=", options.addonVersion)
+    if (!options.addonVersion)
+      this._options.addonVersion = "NONE"
+
+    debug("options.binaryVersion=", options.binaryVersion)
+    if (!options.binaryVersion)
+      this._options.binaryVersion = "NONE"
+
     // Backward compatibility
     if (this._options.useDefaultVerbosityLevel)
       this._options.verbosityLevel = 'default'
@@ -379,7 +397,8 @@ export class Client {
       this._initialized = true
 
     if (!this._tdn) {
-      this._client = this._tdlib.create(this._options.receiveTimeout)
+      this._client = this._tdlib.create(this._options.receiveTimeout, this._options.nodeVersion,
+        this._options.addonVersion, this._options.binaryVersion)
 
       if (!this._client) throw new Error('Failed to create a TDLib client')
 
