@@ -4,13 +4,13 @@ This fork of `bannerets/tdl` does not change source code,
 but modifies Github Actions build pipeline to extend environments that are supported.
 
 Following environments are supported:
-- linux-x64-glibc
-- linux-x64-musl
-- linux-arm64-glibc
-- linux-arm64-musl
-- win-x64
-- darwin-x64
-- darwin-arm64
+- [x] linux-x64-glibc
+- [x] linux-x64-musl
+- [x] linux-arm64-glibc
+- [x] linux-arm64-musl
+- [ ] win-x64 - disabled due to https://github.com/telepilotco/tdl/issues/4
+- [x] darwin-x64
+- [x] darwin-arm64
 
 # tdl 
 
