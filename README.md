@@ -1,7 +1,7 @@
 # @telepilotco/tdl
 
 This fork of `bannerets/tdl` does not change source code,
-but modifies Github Actions build pipeline to extent environments that are supported.
+but modifies Github Actions build pipeline to extend environments that are supported.
 
 Following environments are supported:
 - linux-x64-glibc
